@@ -528,7 +528,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 				'narration' => 'You Have paid UGX'.$blink_args['total'],
 				'reference' => $blink_args['reference'],
 				'status notification url' => $notify_url
-				)
+				);
 
                 return $data;
             }

@@ -540,7 +540,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
              * @return PENDING/FAILED/INVALID
              * @author Gayra Ivan
              **/
-            function check_transaction_status($reference_code = null)
+            /*function check_transaction_status($reference_code = null)
             {
                 if ($reference_code) {
                     $queryURL = $this->notify_url;
@@ -564,7 +564,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                 $request_status->sign_request($this->signature_method, $this->consumer, $this->token);
 
                 return $this->curl_request($request_status);
-            }
+            }*/
 
             /**
              * Check Transaction status
@@ -574,7 +574,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
              * @return PENDING/FAILED/INVALID
              * @author PesaPal
              **/
-            function get_transaction_details($pesapalMerchantReference, $pesapalTrackingId)
+            /*function get_transaction_details($pesapalMerchantReference, $pesapalTrackingId)
             {
 
                 $request_status = OAuthRequest::from_consumer_and_token(
@@ -600,14 +600,14 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                 );
 
                 return $pesapalResponseArray;
-            }
+            }*/
 
             /**
              * Check Transaction status
              *
              * @param String $request_status
              * @return ARRAY
-             * @author PesaPal
+             * @author Blink
              **/
             function curl_request($request_status)
             {
@@ -638,9 +638,9 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 
                 //transaction status
                 $elements = preg_split("/=/", substr($response, $header_size));
-                $pesapal_response_data = $elements[1];
+                $blink_response_data = $elements[1];
 
-                return $pesapal_response_data;
+                return $blink_response_data;
 
             }
 
@@ -648,69 +648,42 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
              * IPN Response
              *
              * @return null
-             * @author Jake Lee Kennedy
+             * @author Gayra Ivan
              **/
             function ipn_response()
             {
 
-                $pesapalTrackingId = '';
-                $pesapalNotification = '';
-                $pesapalMerchantReference = '';
-
-                if (isset($_GET['pesapal_merchant_reference'])) {
-                    $pesapalMerchantReference = $_GET['pesapal_merchant_reference'];
-                }
-
-                if (isset($_GET['pesapal_transaction_tracking_id'])) {
-                    $pesapalTrackingId = $_GET['pesapal_transaction_tracking_id'];
-                }
-
-                if (isset($_GET['pesapal_notification_type'])) {
-                    $pesapalNotification = $_GET['pesapal_notification_type'];
-                }
-
-                /** check status of the transaction made
-                 *There are 3 available API
-                 *checkStatusUsingTrackingIdandMerchantRef() - returns Status only.
-                 *checkStatusByMerchantRef() - returns status only.
-                 *getMoreDetails() - returns status, payment method, merchant reference and pesapal tracking id
-                 */
-
-                //$status            = $this->check_transaction_status($pesapalMerchantReference);
-                //$status             = $this->check_transaction_status($pesapalMerchantReference,$pesapalTrackingId);
-                $transactionDetails = $this->get_transaction_details($pesapalMerchantReference, $pesapalTrackingId);
-                $order = wc_get_order($pesapalMerchantReference);
+                $order = wc_get_order($order_id);
 
                 // We are here so lets check status and do actions
-                switch ($transactionDetails['status']) {
-                    case 'COMPLETED':
+                switch ($_GET['status']) {
+                    case 'SUCCESSFUL':
                     case 'PENDING':
 
                         // Check order not already completed
                         if ($order->get_status() == 'completed') {
                             if ('yes' == $this->debug) {
-                                $this->log->add('pesapal', 'Aborting, Order #' . $order->id . ' is already complete.');
+                                $this->log->add('blink', 'Aborting, Order #' . $order->id . ' is already complete.');
                             }
 
                             exit;
                         }
 
-                        if ($transactionDetails['status'] == 'COMPLETED') {
+                        if ($_GET['status'] == 'SUCCESSFUL') {
                             $order->add_order_note(__('IPN payment completed', 'woocommerce'));
                             $order->payment_complete();
                         } else {
-                            $order->update_status('on-hold', sprintf(__('Payment pending: %s', 'woocommerce'), 'Waiting PesaPal confirmation'));
+                            $order->update_status('on-hold', sprintf(__('Payment pending: %s', 'woocommerce'), 'Waiting blink confirmation'));
                         }
 
                         if ('yes' == $this->debug) {
-                            $this->log->add('pesapal', 'Payment complete.');
+                            $this->log->add('blink', 'Payment complete.');
                         }
 
                         break;
-                    case 'INVALID':
                     case 'FAILED':
                         // Order failed
-                        $order->update_status('failed', sprintf(__('Payment %s via IPN.', 'woocommerce'), strtolower($transactionDetails['status'])));
+                        $order->update_status('failed', sprintf(__('Payment %s via IPN.', 'woocommerce'), strtolower($_GET['status'])));
                         break;
 
                     default:
@@ -718,41 +691,29 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                         break;
                 }
 
-                $order = wc_get_order($pesapalMerchantReference);
+                $order = wc_get_order($order_id);
                 $newstatus = $order->get_status();
 
-                if ($transactionDetails['status'] == $newstatus) {
+                if ($_GET['status'] == $newstatus) {
                     $dbupdated = "True";
                 } else {
                     $dbupdated = 'False';
                 }
-
-                if ($pesapalNotification == "CHANGE" && $dbupdated && $transactionDetails['status'] != "PENDING") {
-
-                    $resp = "pesapal_notification_type=$pesapalNotification" .
-                        "&pesapal_transaction_tracking_id=$pesapalTrackingId" .
-                        "&pesapal_merchant_reference=$pesapalMerchantReference";
-
-                    ob_start();
-                    echo $resp;
-                    ob_flush();
-                    exit;
-                }
             }
 
-        } // END WC_Pesapal_Gateway Class
+        } // END WC_Blink_Gateway Class
 
-    } // END init_woo_pesapal_gateway()
+    } // END init_woo_blink_gateway()
 
     /**
      * @param String[] $methods
      * @return String[]
      */
-    function add_pesapal_gateway($methods)
+    function add_blink_gateway($methods)
     {
-        $methods[] = 'WC_Pesapal_Gateway';
+        $methods[] = 'WC_Blink_Gateway';
         return $methods;
     }
 
-    add_filter('woocommerce_payment_gateways', 'add_pesapal_gateway');
+    add_filter('woocommerce_payment_gateways', 'add_blink_gateway');
 }

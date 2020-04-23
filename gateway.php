@@ -77,7 +77,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
       order_id mediumint(9) NOT NULL,
       reference_code varchar(50) NOT NULL,
       time datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
-      PRIMARY KEY (order_id, tracking_id)
+      PRIMARY KEY (order_id, reference_code)
     );";
 
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -150,7 +150,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                 $this->QueryPaymentApi = 'depositmobilemoney';
            
                 // IPN Request URL
-                $this->notify_url = str_replace('https:', 'http:', add_query_arg('wc-api', 'WC_Blink_Gateway', home_url('/status-handler/')));
+                $this->notify_url = str_replace('http:', 'https:', add_query_arg(home_url('/status-handler/')));
                 $this->init_form_fields();
                 $this->init_settings();
 

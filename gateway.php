@@ -75,7 +75,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 
         $sql = "CREATE TABLE IF NOT EXISTS $table_name (
       order_id mediumint(9) NOT NULL,
-      tracking_id varchar(36) NOT NULL,
+      reference_code varchar(50) NOT NULL,
       time datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
       PRIMARY KEY (order_id, tracking_id)
     );";
@@ -250,11 +250,11 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 
           <h3><?php _e('Blink Payment', 'woothemes');?></h3>
           <p>
-            <?php _e('Allows use of the Pesapal Payment Gateway, all you need is an account at pesapal.com and your consumer and secret key.<br />', 'woothemes');?>
+            <?php _e('Allows use of the Blink Payment Gateway, all you need is an account at www.blinkpay.co.ug and your username and password.<br />', 'woothemes');?>
             <?php _e('<a href="http://docs.woothemes.com/document/managing-orders/">Click here </a> to learn about the various woocommerce Payment statuses.<br /><br />', 'woothemes');?>
-            <?php _e('<strong>Developer: </strong>Jakeii<br />', 'woothemes');?>
-            <?php _e('<strong>Contributors: </strong>PesaPal<br />', 'woothemes');?>
-            <?php _e('<strong>Donate link:  </strong><a href="http://jakeii.github.com/woocommerce-pesapal" target="_blank"> http://jakeii.github.com/woocommerce-pesapal</a>', 'woothemes');?>
+            <?php _e('<strong>Developer: </strong>Gayra Ivan<br />', 'woothemes');?>
+            <?php _e('<strong>Contributors: </strong>Blink Systems<br />', 'woothemes');?>
+            <?php // _e('<strong>Donate link:  </strong><a href="http://jakeii.github.com/woocommerce-pesapal" target="_blank"> http://jakeii.github.com/woocommerce-pesapal</a>', 'woothemes');?>
           </p>
           <table class="form-table">
           <?php
@@ -264,11 +264,11 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
           </table>
           <script type="text/javascript">
           jQuery(function(){
-            var testMode = jQuery("#woocommerce_pesapal_testmode");
-            var ipn = jQuery("#woocommerce_pesapal_ipn");
-            var ipnurl = jQuery("#woocommerce_pesapal_ipnurl");
-            var consumer = jQuery("#woocommerce_pesapal_testconsumerkey");
-            var secrect = jQuery("#woocommerce_pesapal_testsecretkey");
+            var testMode = jQuery("#woocommerce_blink_testmode");
+            var ipn = jQuery("#woocommerce_blink_ipn");
+            var ipnurl = jQuery("#woocommerce_blink_ipnurl");
+            var username = jQuery("#woocommerce_blink_testusername");
+            var password = jQuery("#woocommerce_blink_testpassword");
 
             if (testMode.is(":not(:checked)")){
               consumer.parents("tr").css("display","none");
@@ -314,7 +314,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
              *
              * @param Integer $order_id
              * @return void
-             * @author Jake Lee Kennedy
+             * @author Gayra Ivan
              **/
             public function thankyou_page($order_id)
             {
@@ -325,33 +325,23 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                 // // Remove cart
                 // $woocommerce->cart->empty_cart();
 
-                if (isset($_GET['pesapal_transaction_tracking_id'])) {
+                if (isset($_GET['reference_code'])) {
 
                     // $order_id = $_GET['order'];
                     $order = wc_get_order($order_id);
-                    $pesapalMerchantReference = $_GET['pesapal_merchant_reference'];
-                    $pesapalTrackingId = $_GET['pesapal_transaction_tracking_id'];
-
-                    //$status            = $this->check_transaction_status($pesapalMerchantReference);
-                    //$status             = $this->check_transaction_status($pesapalMerchantReference,$pesapalTrackingId);
-                    $transactionDetails = $this->get_transaction_details($pesapalMerchantReference, $pesapalTrackingId);
-
+                  
                     $order->add_order_note(__('Payment accepted, awaiting confirmation.', 'woothemes'));
-                    add_post_meta($order_id, '_order_pesapal_transaction_tracking_id', $transactionDetails['pesapal_transaction_tracking_id']);
-                    add_post_meta($order_id, '_order_pesapal_payment_method', $transactionDetails['payment_method']);
-
-                    $dbUpdateSuccessful = add_post_meta($order_id, '_order_payment_method', $transactionDetails['payment_method']);
-
+                   
                     // if immeadiatly complete mark it so
-                    if ($transactionDetails["status"] === 'COMPLETED') {
+                    if ($transactionDetails["status"] === 'SUCCESSFUL') {
                         $order->add_order_note(__('Payment confirmed.', 'woothemes'));
                         $order->payment_complete();
                     } else if (!$this->ipn) {
-                        $tracking_id = $_GET['pesapal_transaction_tracking_id'];
+                        $reference_code = $_GET['reference_code'];
 
                         global $wpdb;
-                        $table_name = $wpdb->prefix . 'pesapal_queue';
-                        $wpdb->insert($table_name, array('order_id' => $order_id, 'tracking_id' => $tracking_id, 'time' => current_time('mysql')), array('%d', '%s', '%s'));
+                        $table_name = $wpdb->prefix . 'blink_queue';
+                        $wpdb->insert($table_name, array('order_id' => $order_id, 'reference_code' => $reference_code, 'time' => current_time('mysql')), array('%d', '%s', '%s'));
                     }
                 }
 
@@ -362,7 +352,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
              *
              * @param Integer $order_id
              * @return void
-             * @author Jake Lee Kennedy
+             * @author Gayra Ivan
              *
              **/
             function process_payment($order_id)
@@ -380,10 +370,10 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
             } //END process_payment()
 
             /**
-             * Payment page, creates pesapal oauth request and shows the gateway iframe
+             * Payment page, creates blink request and shows the gateway iframe
              *
              * @return void
-             * @author Jake Lee Kennedy
+             * @author Gayra Ivan
              **/
             function payment_page($order_id)
             {
@@ -399,34 +389,24 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
              * Before Payment
              *
              * @return void
-             * @author Jake Lee Kennedy
+             * @author Gayra Ivan
              **/
             function before_pay()
             {
                 // if we have come from the gateway do some stuff
-                if (isset($_GET['pesapal_transaction_tracking_id'])) {
+                if (isset($_GET['reference_code'])) {
 
                     $order_id = $_GET['order'];
                     $order = wc_get_order($order_id);
-                    $pesapalMerchantReference = $_GET['pesapal_merchant_reference'];
-                    $pesapalTrackingId = $_GET['pesapal_transaction_tracking_id'];
-
-                    //$status            = $this->check_transaction_status($pesapalMerchantReference);
-                    //$status             = $this->check_transaction_status($pesapalMerchantReference,$pesapalTrackingId);
-                    $transactionDetails = $this->get_transaction_details($pesapalMerchantReference, $pesapalTrackingId);
-
+                    
                     $order->add_order_note(__('Payment accepted, awaiting confirmation.', 'woothemes'));
-                    add_post_meta($order_id, '_order_pesapal_transaction_tracking_id', $transactionDetails['pesapal_transaction_tracking_id']);
-                    add_post_meta($order_id, '_order_pesapal_payment_method', $transactionDetails['payment_method']);
-
-                    $dbUpdateSuccessful = add_post_meta($order_id, '_order_payment_method', $transactionDetails['payment_method']);
-
+                    
                     if (!$this->ipn) {
-                        $tracking_id = $_GET['pesapal_transaction_tracking_id'];
+                        $reference_code = $_GET['reference_code'];
 
                         global $wpdb;
-                        $table_name = $wpdb->prefix . 'pesapal_queue';
-                        $wpdb->insert($table_name, array('order_id' => $order_id, 'tracking_id' => $tracking_id, 'time' => current_time('mysql')), array('%d', '%s', '%s'));
+                        $table_name = $wpdb->prefix . 'blink_queue';
+                        $wpdb->insert($table_name, array('order_id' => $order_id, 'reference_code' => $reference_code, 'time' => current_time('mysql')), array('%d', '%s', '%s'));
                     }
 
                     wp_redirect(add_query_arg('key', $order->get_order_key(), add_query_arg('order', $order_id, $order->get_checkout_order_received_ur())));
@@ -437,14 +417,14 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
              * backgroud check payment
              *
              * @return void
-             * @author Jake Lee Kennedy
+             * @author Gayra Ivan
              **/
             function background_check_payment_status()
             {
                 global $wpdb;
-                $table_name = $wpdb->prefix . 'pesapal_queue';
+                $table_name = $wpdb->prefix . 'blink_queue';
 
-                $checks = $wpdb->get_results("SELECT order_id, tracking_id FROM $table_name");
+                $checks = $wpdb->get_results("SELECT order_id, reference_code FROM $table_name");
 
                 if ($wpdb->num_rows > 0) {
 
@@ -452,10 +432,10 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 
                         $order = wc_get_order($check->order_id);
 
-                        $status = $this->status_request($check->tracking_id, $check->order_id);
+                        $status = $this->status_request($check->reference_code, $check->order_id);
 
                         switch ($status) {
-                            case 'COMPLETED':
+                            case 'SUCCESSFUL':
                                 // hooray payment complete
                                 $order->add_order_note(__('Payment confirmed.', 'woothemes'));
                                 $order->payment_complete();
@@ -472,43 +452,58 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
             }
 
             /**
-             * Generate OAuth pesapal payment url
+             * Generate blink payment url
              *
              * @param Integer $order_id
              * @return string
-             * @author Jake Lee Kennedy
+             * @author Gayra Ivan
              **/
             function create_url($order_id)
-            {
-                $order = wc_get_order($order_id);
-                $order_xml = $this->pesapal_xml($order_id);
-                $callback_url = add_query_arg('key', $order->get_order_key(), $order->get_checkout_order_received_url());
-
-                $url = OAuthRequest::from_consumer_and_token($this->consumer, $this->token, "GET", $this->gatewayURL, $this->params);
-                $url->set_parameter("oauth_callback", $callback_url);
-                $url->set_parameter("pesapal_request_data", $order_xml);
-                $url->sign_request($this->signature_method, $this->consumer, $this->token);
-
-                return $url;
-            }
+			{
+				//API Url
+				$url = $api;
+				
+				//Initiate cURL.
+				$ch = curl_init($url);
+				
+				//The JSON data.
+				$jsonData = $this->blink_json($order_id);
+				
+				//Encode the array into JSON.
+				$jsonDataEncoded = json_encode($jsonData);
+				
+				//Tell cURL that we want to send a POST request.
+				curl_setopt($ch, CURLOPT_POST, 1);
+				
+				//Attach our encoded JSON string to the POST fields.
+				curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonDataEncoded);
+				
+				//Set the content type to application/json
+				curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+				
+				//Execute the request
+				$result = curl_exec($ch);
+				
+				return $result;
+			}
 
             /**
-             * Create XML order request
+             * Create JSON order request
              *
              * @param Integer $order_id
              * @return string
              * @author Jake Lee Kennedy
              **/
-            function pesapal_xml($order_id)
+            function blink_json($order_id)
             {
 
                 $order = wc_get_order($order_id);
-                $pesapal_args['total'] = $order->get_total();
-                $pesapal_args['reference'] = $order_id;
-                $pesapal_args['first_name'] = $order->get_billing_first_name();
-                $pesapal_args['last_name'] = $order->get_billing_last_name();
-                $pesapal_args['email'] = $order->get_billing_email();
-                $pesapal_args['phone'] = $order->get_billing_phone();
+                $blink_args['total'] = $order->get_total();
+                $blink_args['reference'] = $order_id;
+                $blink_args['first_name'] = $order->get_billing_first_name();
+                $blink_args['last_name'] = $order->get_billing_last_name();
+                $blink_args['email'] = $order->get_billing_email();
+                $blink_args['phone'] = $order->get_billing_phone();
 
                 $i = 0;
                 foreach ($order->get_items('line_item') as $item) {
@@ -524,65 +519,37 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                     $i++;
                 }
 
-                $xml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>
-            <PesapalDirectOrderInfo xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\"
-            Amount=\"" . $pesapal_args['total'] . "\"
-            Description=\"Order from " . bloginfo('name') . ".\"
-            Type=\"MERCHANT\"
-            Reference=\"" . $pesapal_args['reference'] . "\"
-            FirstName=\"" . $pesapal_args['first_name'] . "\"
-            LastName=\"" . $pesapal_args['last_name'] . "\"
-            Email=\"" . $pesapal_args['email'] . "\"
-            PhoneNumber=\"" . $pesapal_args['phone'] . "\"
-            Currency=\"" . get_woocommerce_currency() . "\"
-            xmlns=\"http://www.pesapal.com\" />";
+                $data = array(
+				'username' => $username,
+				'password' => $password,
+				'api' => 'depositmobilemoney',
+				'msisdn' => $blink_args['phone'],
+				'amount' => $blink_args['total'],
+				'narration' => 'You Have paid UGX'.$blink_args['total'],
+				'reference' => $blink_args['reference'],
+				'status notification url' => $notify_url
+				)
 
-                return htmlentities($xml);
-            }
-
-            /**
-             * Status request
-             *
-             * @param String $transaction_id
-             * @param String $merchant_ref
-             * @return object
-             * @author Jake Lee Kennedy
-             * @modifiedBy PesaPal
-             **/
-            function status_request($transaction_id, $merchant_ref)
-            {
-
-                $request_status = OAuthRequest::from_consumer_and_token($this->consumer, $this->token, "GET", $this->gatewayURL, $this->params);
-                $request_status->set_parameter("pesapal_merchant_reference", $merchant_ref);
-                $request_status->set_parameter("pesapal_transaction_tracking_id", $transaction_id);
-                $request_status->sign_request($this->signature_method, $this->consumer, $this->token);
-
-                return $this->check_transaction_status($merchant_ref);
-                //return $this->check_transaction_status($merchant_ref,$transaction_id);
-                //return $this->get_transaction_details($merchant_ref,$transaction_id);
-
+                return $data;
             }
 
             /**
              * Check Transaction status
              *
-             * @param String $pesapalMerchantReference
-             * @param String $pesapalTrackingId
+             * @param String $reference_code
              * @return PENDING/FAILED/INVALID
-             * @author PesaPal
+             * @author Gayra Ivan
              **/
-            function check_transaction_status($pesapalMerchantReference, $pesapalTrackingId = null)
+            function check_transaction_status($reference_code = null)
             {
-                if ($pesapalTrackingId) {
-                    $queryURL = $this->QueryPaymentStatus;
+                if ($reference_code) {
+                    $queryURL = $this->notify_url;
                 } else {
-                    $queryURL = $this->QueryPaymentStatusByMerchantRef;
+                    $queryURL = '';
                 }
 
                 //get transaction status
-                $request_status = OAuthRequest::from_consumer_and_token(
-                    $this->consumer,
-                    $this->token,
+                $request_status = 
                     "GET",
                     $queryURL,
                     $this->params

@@ -148,9 +148,10 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                 // Gateway payment URLs
                 $this->gatewayURL = $api;
                 $this->QueryPaymentApi = 'depositmobilemoney';
+				$this->QueryRefundApi = 'withdrawmobilemoney';
            
                 // IPN Request URL
-                $this->notify_url = str_replace('http:', 'https:', add_query_arg(home_url('/status-handler/')));
+                $this->notify_url = 'https://myjobug.com/payment-status/';
                 $this->init_form_fields();
                 $this->init_settings();
 
@@ -188,13 +189,13 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                         'title' => __('Description', 'woocommerce'),
                         'type' => 'textarea',
                         'description' => __('This is the description which the user sees during checkout.', 'woocommerce'),
-                        'default' => __("Payment via Blink Gateway, you can pay by mobile money option such as MTN.", 'woocommerce'),
+                        'default' => __("Payment via Blink Gateway, you can pay by a mobile money option such as MTN.", 'woocommerce'),
                     ),
                     'ipn' => array(
                         'title' => __('Use IPN', 'woothemes'),
                         'type' => 'checkbox',
                         'label' => __('Use IPN', 'woothemes'),
-                        'description' => __('Blink has the ability to send your site an Instant Payment Notification whenever there is an order update. It is highly reccomended that you enable this, as there are some issues with the "background" status checking. It is disabled by default because the IPN URL needs to be entered in the pesapal control panel.', 'woothemes'),
+                        'description' => __('Blink has the ability to send your site an Instant Payment Notification whenever there is an order update. It is highly reccomended that you enable this, as there are some issues with the "background" status checking. It is disabled by default because the IPN URL needs to be entered in the blink control panel.', 'woothemes'),
                         'default' => 'no',
                     ),
                     'ipnurl' => array(
@@ -248,13 +249,13 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
             public function admin_options()
             {?>
 
-          <h3><?php _e('Blink Payment', 'woothemes');?></h3>
+          <h3><?php _e('Blink Payment API', 'woothemes');?></h3>
           <p>
             <?php _e('Allows use of the Blink Payment Gateway, all you need is an account at www.blinkpay.co.ug and your username and password.<br />', 'woothemes');?>
             <?php _e('<a href="http://docs.woothemes.com/document/managing-orders/">Click here </a> to learn about the various woocommerce Payment statuses.<br /><br />', 'woothemes');?>
             <?php _e('<strong>Developer: </strong>Gayra Ivan<br />', 'woothemes');?>
             <?php _e('<strong>Contributors: </strong>Blink Systems<br />', 'woothemes');?>
-            <?php // _e('<strong>Donate link:  </strong><a href="http://jakeii.github.com/woocommerce-pesapal" target="_blank"> http://jakeii.github.com/woocommerce-pesapal</a>', 'woothemes');?>
+            <?php // _e('<strong>Donate link:  </strong><a href="http://jakeii.github.com/woocommerce-blink" target="_blank"> http://jakeii.github.com/woocommerce-blink</a>', 'woothemes');?>
           </p>
           <table class="form-table">
           <?php
@@ -271,8 +272,8 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
             var password = jQuery("#woocommerce_blink_testpassword");
 
             if (testMode.is(":not(:checked)")){
-              consumer.parents("tr").css("display","none");
-              secrect.parents("tr").css("display","none");
+              username.parents("tr").css("display","none");
+              password.parents("tr").css("display","none");
             }
 
             if (ipn.is(":not(:checked)")){
@@ -284,12 +285,12 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
               // If checked
               if (testMode.is(":checked")) {
                 //show the hidden div
-                consumer.parents("tr").show("fast");
-                secrect.parents("tr").show("fast");
+                username.parents("tr").show("fast");
+                password.parents("tr").show("fast");
               } else {
                 //otherwise, hide it
-                consumer.parents("tr").hide("fast");
-                secrect.parents("tr").hide("fast");
+                username.parents("tr").hide("fast");
+                paasword.parents("tr").hide("fast");
               }
             });
 
@@ -319,13 +320,19 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
             public function thankyou_page($order_id)
             {
                 // global $woocommerce;
+				
+				//Receive the RAW ipn data.
+				$content = trim(file_get_contents($ipnurl));
+				
+				//Attempt to decode the incoming RAW post data from JSON.
+				$transactionDetails = json_decode($content, true);
 
                 // $order = wc_get_order( $order_id );
 
                 // // Remove cart
                 // $woocommerce->cart->empty_cart();
 
-                if (isset($_GET['reference_code'])) {
+                if (isset($transactionDetails['reference_code'])) {
 
                     // $order_id = $_GET['order'];
                     $order = wc_get_order($order_id);
@@ -337,7 +344,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                         $order->add_order_note(__('Payment confirmed.', 'woothemes'));
                         $order->payment_complete();
                     } else if (!$this->ipn) {
-                        $reference_code = $_GET['reference_code'];
+                        $reference_code = $transactionDetails['reference_code'];
 
                         global $wpdb;
                         $table_name = $wpdb->prefix . 'blink_queue';
@@ -393,8 +400,14 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
              **/
             function before_pay()
             {
-                // if we have come from the gateway do some stuff
-                if (isset($_GET['reference_code'])) {
+                //Receive the RAW ipn data.
+				$content = trim(file_get_contents($ipnurl));
+				
+				//Attempt to decode the incoming RAW post data from JSON.
+				$transactionDetails = json_decode($content, true);
+				
+				// if we have come from the gateway do some stuff
+                if (isset($transactionDetails['reference_code'])) {
 
                     $order_id = $_GET['order'];
                     $order = wc_get_order($order_id);
@@ -402,7 +415,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                     $order->add_order_note(__('Payment accepted, awaiting confirmation.', 'woothemes'));
                     
                     if (!$this->ipn) {
-                        $reference_code = $_GET['reference_code'];
+                        $reference_code = $transactionDetails['reference_code'];
 
                         global $wpdb;
                         $table_name = $wpdb->prefix . 'blink_queue';
@@ -499,11 +512,27 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 
                 $order = wc_get_order($order_id);
                 $blink_args['total'] = $order->get_total();
-                $blink_args['reference'] = $order_id;
+                $blink_args['reference'] = date('Y-m-d H:i:s');
                 $blink_args['first_name'] = $order->get_billing_first_name();
                 $blink_args['last_name'] = $order->get_billing_last_name();
                 $blink_args['email'] = $order->get_billing_email();
                 $blink_args['phone'] = $order->get_billing_phone();
+				
+				if(  preg_match( '/^\+\d(\d{3})(\d{9})$/', $blink_args['phone'],  $matches ) )
+				{
+					$result = preg_replace('/\d(\d{3})(\d{9})$/', $matches, $blink_args['phone']);
+					return $result;
+				}
+				else if(  preg_match( '/^\0\d(\d{9})$/', $blink_args['phone'],  $matches ) )
+				{
+					$result = preg_replace('/^\256\d(\d{9})$/', $matches, $blink_args['phone']);
+					return $result;
+				}
+				else if(  preg_match( '/^\256\d(\d{9})$/', $blink_args['phone'],  $matches ) )
+				{
+					$result = $matches;
+					return $result;
+				}
 
                 $i = 0;
                 foreach ($order->get_items('line_item') as $item) {
@@ -522,126 +551,15 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                 $data = array(
 				'username' => $username,
 				'password' => $password,
-				'api' => 'depositmobilemoney',
-				'msisdn' => $blink_args['phone'],
+				'api' => $QueryPaymentApi,
+				'msisdn' => $result,
 				'amount' => $blink_args['total'],
-				'narration' => 'You Have paid UGX'.$blink_args['total'],
+				'narration' => 'Deposit UGX'.$blink_args['total'].' into my account',
 				'reference' => $blink_args['reference'],
 				'status notification url' => $notify_url
 				);
 
                 return $data;
-            }
-
-            /**
-             * Check Transaction status
-             *
-             * @param String $reference_code
-             * @return PENDING/FAILED/INVALID
-             * @author Gayra Ivan
-             **/
-            /*function check_transaction_status($reference_code = null)
-            {
-                if ($reference_code) {
-                    $queryURL = $this->notify_url;
-                } else {
-                    $queryURL = '';
-                }
-
-                //get transaction status
-                $request_status = 
-                    "GET",
-                    $queryURL,
-                    $this->params
-                );
-
-                $request_status->set_parameter("pesapal_merchant_reference", $pesapalMerchantReference);
-
-                if ($pesapalTrackingId) {
-                    $request_status->set_parameter("pesapal_transaction_tracking_id", $pesapalTrackingId);
-                }
-
-                $request_status->sign_request($this->signature_method, $this->consumer, $this->token);
-
-                return $this->curl_request($request_status);
-            }*/
-
-            /**
-             * Check Transaction status
-             *
-             * @param String $pesapalMerchantReference
-             * @param String $pesapalTrackingId
-             * @return PENDING/FAILED/INVALID
-             * @author PesaPal
-             **/
-            /*function get_transaction_details($pesapalMerchantReference, $pesapalTrackingId)
-            {
-
-                $request_status = OAuthRequest::from_consumer_and_token(
-                    $this->consumer,
-                    $this->token,
-                    "GET",
-                    $this->querypaymentdetails,
-                    $this->params
-                );
-
-                $request_status->set_parameter("pesapal_merchant_reference", $pesapalMerchantReference);
-                $request_status->set_parameter("pesapal_transaction_tracking_id", $pesapalTrackingId);
-                $request_status->sign_request($this->signature_method, $this->consumer, $this->token);
-
-                $responseData = $this->curl_request($request_status);
-
-                $pesapalResponse = explode(",", $responseData);
-
-                $pesapalResponseArray = array('pesapal_transaction_tracking_id' => $pesapalResponse[0],
-                    'payment_method' => $pesapalResponse[1],
-                    'status' => $pesapalResponse[2],
-                    'pesapal_merchant_reference' => $pesapalResponse[3],
-                );
-
-                return $pesapalResponseArray;
-            }*/
-
-            /**
-             * Check Transaction status
-             *
-             * @param String $request_status
-             * @return ARRAY
-             * @author Blink
-             **/
-            function curl_request($request_status)
-            {
-
-                $ch = curl_init();
-                curl_setopt($ch, CURLOPT_URL, $request_status);
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-                curl_setopt($ch, CURLOPT_HEADER, 1);
-                curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
-                if (defined('CURL_PROXY_REQUIRED')) {
-                    if (CURL_PROXY_REQUIRED == 'True') {
-                        $proxy_tunnel_flag = (
-                            defined('CURL_PROXY_TUNNEL_FLAG')
-                            && strtoupper(CURL_PROXY_TUNNEL_FLAG) == 'FALSE'
-                        ) ? false : true;
-                        curl_setopt($ch, CURLOPT_HTTPPROXYTUNNEL, $proxy_tunnel_flag);
-                        curl_setopt($ch, CURLOPT_PROXYTYPE, CURLPROXY_HTTP);
-                        curl_setopt($ch, CURLOPT_PROXY, CURL_PROXY_SERVER_DETAILS);
-                    }
-                }
-
-                $response = curl_exec($ch);
-                $header_size = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-                $raw_header = substr($response, 0, $header_size - 4);
-                $headerArray = explode("\r\n\r\n", $raw_header);
-                $header = $headerArray[count($headerArray) - 1];
-
-                //transaction status
-                $elements = preg_split("/=/", substr($response, $header_size));
-                $blink_response_data = $elements[1];
-
-                return $blink_response_data;
-
             }
 
             /**
@@ -653,10 +571,16 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
             function ipn_response()
             {
 
-                $order = wc_get_order($order_id);
+                //Receive the RAW ipn data.
+				$content = trim(file_get_contents($ipnurl));
+				
+				//Attempt to decode the incoming RAW post data from JSON.
+				$transactionDetails = json_decode($content, true);
+				
+				$order = wc_get_order($order_id);
 
                 // We are here so lets check status and do actions
-                switch ($_GET['status']) {
+                switch ($transactionDetails['status']) {
                     case 'SUCCESSFUL':
                     case 'PENDING':
 
@@ -669,7 +593,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                             exit;
                         }
 
-                        if ($_GET['status'] == 'SUCCESSFUL') {
+                        if ($transactionDetails['status'] == 'SUCCESSFUL') {
                             $order->add_order_note(__('IPN payment completed', 'woocommerce'));
                             $order->payment_complete();
                         } else {
@@ -683,7 +607,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                         break;
                     case 'FAILED':
                         // Order failed
-                        $order->update_status('failed', sprintf(__('Payment %s via IPN.', 'woocommerce'), strtolower($_GET['status'])));
+                        $order->update_status('failed', sprintf(__('Payment %s via IPN.', 'woocommerce'), strtolower($transactionDetails['status'])));
                         break;
 
                     default:
@@ -694,7 +618,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                 $order = wc_get_order($order_id);
                 $newstatus = $order->get_status();
 
-                if ($_GET['status'] == $newstatus) {
+                if ($transactionDetails['status'] == $newstatus) {
                     $dbupdated = "True";
                 } else {
                     $dbupdated = 'False';

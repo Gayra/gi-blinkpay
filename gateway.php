@@ -497,7 +497,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 				'api' => 'depositmobilemoney',
 				'msisdn' => $this->get_phone_number_args( $order ),
 				'amount' => $order->get_total();
-				'narration' => 'Deposit UGX'.$blink_args['total'].' into my account',
+				'narration' => 'Deposit UGX'.$order->get_total().' into my account',
 				'reference' => $order->get_order_key(),
 				'status notification url' => $notify_url
 				);

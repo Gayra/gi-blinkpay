@@ -111,9 +111,13 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                 global $woocommerce;
                 $this->id = 'blink';
                 $this->method_title = __('Blink', 'woocommerce');
+				$this->order_button_text = __( 'Proceed to BlinkPay', 'woocommerce' );
                 $this->has_fields = false;
                 $this->testmode = ($this->get_option('testmode') === 'yes') ? true : false;
                 $this->debug = $this->get_option('debug');
+				$this->supports = array(
+				'products',
+				);
 
                 // Logs
                 if ('yes' == $this->debug) {
@@ -156,9 +160,9 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 
                 // Actions
                 add_action('woocommerce_update_options_payment_gateways_' . $this->id, array($this, 'process_admin_options'));
-                add_action('woocommerce_receipt_blink', array($this, 'payment_page'));
-                add_action('before_woocommerce_pay', array(&$this, 'before_pay'));
-                add_action('woocommerce_thankyou_blink', array($this, 'thankyou_page'));
+                add_action('woocommerce_receipt_blink', array(&$this, 'payment_page'));
+                //add_action('before_woocommerce_pay', array($this, 'before_pay'));
+                add_action('woocommerce_thankyou_blink', array(&$this, 'thankyou_page'));
                 add_action('blink_background_payment_checks', array($this, 'background_check_payment_status'));
                 add_action('woocommerce_api_wc_blink_gateway', array($this, 'ipn_response'));
                 add_action('blink_process_valid_ipn_request', array($this, 'process_valid_ipn_request'));
@@ -330,13 +334,14 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                     // $order_id = $_GET['order'];
                     $order = wc_get_order($order_id);
                   
-                    $order->add_order_note(__('Payment accepted, awaiting confirmation.', 'woothemes'));
+                    $order->add_order_note(__('Payment accepted, awaiting confirmation from the gateway.', 'woothemes'));
+					add_post_meta($order_id, '_order_blink_receipt_number', $transactionDetails['receipt_number']);
                    
                     // if immeadiatly complete mark it so
                     if ($transactionDetails["status"] === 'SUCCESSFUL') {
                         $order->add_order_note(__('Payment confirmed.', 'woothemes'));
                         $order->payment_complete();
-                    } else if (!$this->ipn) {
+                    } else {
                         $reference_code = $transactionDetails['reference_code'];
 
                         global $wpdb;
@@ -377,45 +382,24 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
              **/
             function payment_page($order_id)
             {
-                $network = before_pay($order_id);
-				//Attempt to decode the incoming RAW post data from JSON.
-				$networkDetails = json_decode($network, true);
-				if($networkDetails['status'] == 'ACTIVE'){
-				$url = $this->create_url($order_id);
-				} else {
-					echo 'Phone number not valid, please check your number again';
-				}
-                ?>
-          <iframe src="<?php echo $url; ?>" width="100%" height="700px"  scrolling="yes" frameBorder="0">
-            <p>Browser unable to load iFrame</p>
-          </iframe>
-          <?php
-}
-
-            /**
-             * Before Payment
-             *
-             * @return void
-             * @author Gayra Ivan
-             **/
-            function before_pay($order_id)
-            {
-                //API Url
-				$url = $api;
+                global $woocommerce;
+				//API Url
+				$url = $this->gatewayURL;
 				
 				$order = wc_get_order($order_id);
+				$msisdn = implode("",$this->get_phone_number_args( $order ));
 				
 				//The JSON data.
 				$jsonData = array(
-				'username' => $username,
-				'password' => $password,
+				'username' => $this->username,
+				'password' => $this->password,
 				'api' => 'checknetworkstatus',
-				'msisdn' => $this->get_phone_number_args( $order ),
+				'msisdn' => $msisdn,
 				'service' => 'MOBILE MONEY',
 				);
 				
 				//Encode the array into JSON.
-				$jsonDataEncoded = json_encode($data);
+				$jsonDataEncoded = json_encode($jsonData);
 				
 				$curl = curl_init();
 				curl_setopt_array($curl, array(
@@ -433,11 +417,75 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 				),
 				));
 				
+				$network = curl_exec($curl);
+				curl_close($curl);
+				
+				//Attempt to decode the incoming RAW post data from JSON.
+				$networkDetails = json_decode($network, true);
+				
+				//var_dump($networkDetails);
+				if($networkDetails['status'] == 'ACTIVE'){
+					
+				$amount = floatval( number_format($order->get_total(), 0, '.', ''));
+				$data1 = array(
+				'username' => $this->username,
+				'password' => $this->password,
+				'api' => 'depositmobilemoney',
+				'msisdn' => $msisdn,
+				'amount' => $amount,
+				'narration' => 'Deposit UGX'.number_format($order->get_total()).' into my account',
+				'reference' => $order->get_order_key(),
+				'status notification url' => $this->notify_url
+				);
+				
+				
+				//Encode the array into JSON.
+				$jsonData1 = json_encode($data1);
+				//var_dump($jsonData1);
+				
+				$curl = curl_init();
+				curl_setopt_array($curl, array(
+				CURLOPT_URL => $url,
+				CURLOPT_RETURNTRANSFER => true,
+				CURLOPT_ENCODING => "",
+				CURLOPT_MAXREDIRS => 10,
+				CURLOPT_TIMEOUT => 0,
+				CURLOPT_FOLLOWLOCATION => true,
+				CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+				CURLOPT_CUSTOMREQUEST => "POST",
+				CURLOPT_POSTFIELDS => $jsonData1,
+				CURLOPT_HTTPHEADER => array("Content-Type: application/json"  ),
+				));
+				
 				$response = curl_exec($curl);
 				curl_close($curl);
 				
-				return $response;
-            }
+				//var_dump($response);
+				//Attempt to decode the incoming RAW post data from JSON.
+				$transactionDetails = json_decode($response, true);
+				
+				// if we have come from the gateway do some stuff
+                if (isset($transactionDetails['reference_code'])) {
+
+                    //$order_id = $_GET['order'];
+                    $order = wc_get_order($order_id);
+                    
+                    $order->add_order_note(__('Payment accepted, awaiting confirmation.', 'woothemes'));
+                                       
+                        $reference_code = $transactionDetails['reference_code'];
+
+                        global $wpdb;
+                        $table_name = $wpdb->prefix . 'blink_queue';
+                        $wpdb->insert($table_name, array('order_id' => $order_id, 'reference_code' => $reference_code, 'time' => current_time('mysql')), array('%d', '%s', '%s'));
+                    
+					//wp_redirect(add_query_arg('order', $order_id, add_query_arg('key', $order->get_order_key(), $order->get_checkout_order_received_url())));
+					wp_redirect( $this->get_return_url($order) ); exit;
+				}
+				} else {
+					echo 'Phone number not valid, please check your number again';
+				}
+				
+			}
 
             /**
              * backgroud check payment
@@ -458,10 +506,15 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 
                         $order = wc_get_order($check->order_id);
 
-                        $status = $this->status_request($check->reference_code, $check->order_id);
+                        //Receive the RAW ipn data.
+				$content = trim(file_get_contents($ipnurl));
+				
+				//Attempt to decode the incoming RAW post data from JSON.
+				$transactionDetails = json_decode($content, true);
+						$status = $transactionDetails($check->reference_code);
 
                         switch ($status) {
-                            case 'COMPLETED':
+                            case 'SUCCESSFUL':
                                 // hooray payment complete
                                 $order->add_order_note(__('Payment confirmed.', 'woothemes'));
                                 $order->payment_complete();
@@ -476,73 +529,6 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                     }
                 }
             }
-
-            /**
-             * Generate blink payment url
-             *
-             * @param Integer $order_id
-             * @return string
-             * @author Gayra Ivan
-             **/
-            function create_url($order_id)
-			{
-				//API Url
-				$url = $api;
-				
-				$order = wc_get_order($order_id);
-				
-				$data = array(
-				'username' => $username,
-				'password' => $password,
-				'api' => 'depositmobilemoney',
-				'msisdn' => $this->get_phone_number_args( $order ),
-				'amount' => $order->get_total();
-				'narration' => 'Deposit UGX'.$order->get_total().' into my account',
-				'reference' => $order->get_order_key(),
-				'status notification url' => $notify_url
-				);
-				
-				//Encode the array into JSON.
-				$jsonDataEncoded = json_encode($data);
-				
-				$curl = curl_init();
-				curl_setopt_array($curl, array(
-				CURLOPT_URL => $url,
-				CURLOPT_RETURNTRANSFER => true,
-				CURLOPT_ENCODING => "",
-				CURLOPT_MAXREDIRS => 10,
-				CURLOPT_TIMEOUT => 0,
-				CURLOPT_FOLLOWLOCATION => true,
-				CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-				CURLOPT_CUSTOMREQUEST => "POST",
-				CURLOPT_POSTFIELDS => $jsonDataEncoded,
-				CURLOPT_HTTPHEADER => array("Content-Type: application/json"  ),
-				));
-				
-				$response = curl_exec($curl);
-				curl_close($curl);
-				
-				//return $response;
-				//Attempt to decode the incoming RAW post data from JSON.
-				$transactionDetails = json_decode($response, true);
-				
-				// if we have come from the gateway do some stuff
-                if (isset($transactionDetails['reference_code'])) {
-
-                    $order_id = $_GET['order'];
-                    $order = wc_get_order($order_id);
-                    
-                    $order->add_order_note(__('Payment accepted, awaiting confirmation.', 'woothemes'));
-                    
-                    if (!$this->ipn) {
-                        $reference_code = $transactionDetails['reference_code'];
-
-                        global $wpdb;
-                        $table_name = $wpdb->prefix . 'blink_queue';
-                        $wpdb->insert($table_name, array('order_id' => $order_id, 'reference_code' => $reference_code, 'time' => current_time('mysql')), array('%d', '%s', '%s'));
-                    }
-					wp_redirect(add_query_arg('key', $order->get_order_key(), add_query_arg('order', $order_id, $order->get_checkout_order_received_url())));
-			}
 			
 			/**
 	 * Get phone number args for paypal request.
@@ -550,7 +536,8 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 	 * @param  WC_Order $order Order object.
 	 * @return array
 	 */
-	protected function get_phone_number_args( $order ) {
+	 
+	function get_phone_number_args( $order ) {
 		$phone_number = wc_sanitize_phone_number( $order->get_billing_phone() );
 
 		if ( in_array( $order->get_billing_country(), array( 'US', 'CA' ), true ) ) {
@@ -569,7 +556,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 			}
 
 			$phone_args = array(
-				'night_phone_a' => $calling_code,
+				'night_phone_a' => preg_replace( '/^\+/', '', $calling_code ),
 				'night_phone_b' => $phone_number,
 			);
 		}
@@ -595,7 +582,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 
                 // We are here so lets check status and do actions
                 switch ($transactionDetails['status']) {
-                    case 'COMPLETED':
+                    case 'SUCCESSFUL':
                     case 'PENDING':
 
                         // Check order not already completed

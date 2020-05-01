@@ -56,7 +56,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
     function create_background_checks()
     {
         // Wp_cron checks pending payments in the background
-        wp_schedule_event(time(), 'tenseconds', 'blink_background_payment_checks');
+        wp_schedule_event(time(), 'tenseconds', 'blink_payment_checks');
 
         //Get the table name with the WP database prefix
         global $wpdb;
@@ -78,8 +78,8 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 
     function remove_background_checks()
     {
-        $next_sheduled = wp_next_scheduled('blink_background_payment_checks');
-        wp_unschedule_event($next_sheduled, 'blink_background_payment_checks');
+        $next_sheduled = wp_next_scheduled('blink_payment_checks');
+        wp_unschedule_event($next_sheduled, 'blink_payment_checks');
     }
 
     /**
@@ -159,11 +159,11 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                 $this->ipn = ($this->get_option('ipn') === 'yes') ? true : false;
 
                 // Actions
-                add_action('woocommerce_update_options_payment_gateways_' . $this->id, array($this, 'process_admin_options'));
+                add_action('woocommerce_update_options_payment_gateways_' . $this->id, array(&$this, 'process_admin_options'));
                 add_action('woocommerce_receipt_blink', array(&$this, 'payment_page'));
                 //add_action('before_woocommerce_pay', array($this, 'before_pay'));
                 add_action('woocommerce_thankyou_blink', array(&$this, 'thankyou_page'));
-                add_action('blink_background_payment_checks', array($this, 'background_check_payment_status'));
+                //add_action('blink_background_payment_checks', array(&$this, 'background_check_payment_status'));
                 //add_action('woocommerce_api_wc_blink_gateway', array($this, 'ipn_response'));
                 //add_action('blink_process_valid_ipn_request', array($this, 'process_valid_ipn_request'));
             }
@@ -511,7 +511,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
              * @return void
              * @author Gayra Ivan
              **/
-            function background_check_payment_status()
+            public function background_check_payment_status()
             {
                 global $wpdb;
                 $table_name = $wpdb->prefix . 'blink_queue';
@@ -702,6 +702,9 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 			}
 
         } // END WC_Blink_Gateway Class
+        
+        $bchecks = new WC_Blink_Gateway();
+add_action('blink_payment_checks', array($bchecks, 'background_check_payment_status'));
 
     } // END init_woo_blink_gateway()
 
@@ -714,6 +717,8 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
         $methods[] = 'WC_Blink_Gateway';
         return $methods;
     }
+    
+    	
 
     add_filter('woocommerce_payment_gateways', 'add_blink_gateway');
 }

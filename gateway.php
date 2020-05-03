@@ -2,7 +2,7 @@
 /*
 Plugin Name: Woocommerce Blink Payment Gateway
 Plugin URI: https://cod-ed.com
-Description: Allows use of Ugandan payment processor Blink - https://www.blinkpay.co.ug.
+Description: Allows use of BlinkPay payment processor - https://www.blinkpay.co.ug.
 Version: 1.0.0
 Author: Gayra Ivan
 Author URI: https://cod-ed.com
@@ -28,14 +28,16 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USAv
  */
+ 
+ defined( 'ABSPATH' ) or exit;
 
 // Check for woocommerce
 if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_option('active_plugins')))) {
 
     // Hooks for adding/ removing the database table, and the wpcron to check them
-    register_activation_hook(__FILE__, 'create_background_checks');
-    register_deactivation_hook(__FILE__, 'remove_background_checks');
-    register_uninstall_hook(__FILE__, 'on_uninstall');
+    register_activation_hook(__FILE__, 'create_background_check');
+    register_deactivation_hook(__FILE__, 'remove_background_check');
+    register_uninstall_hook(__FILE__, 'on_uninstalling');
 
     // cron interval for ever 10 seconds
     add_filter('cron_schedules', 'tenseconds_cron_definer');
@@ -53,7 +55,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
      * Activation, create processing order table, and table version option
      * @return void
      */
-    function create_background_checks()
+    function create_background_check()
     {
         // Wp_cron checks pending payments in the background
         wp_schedule_event(time(), 'tenseconds', 'blink_payment_checks');
@@ -76,7 +78,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
         add_option('blink_db_version', $db_version);
     }
 
-    function remove_background_checks()
+    function remove_background_check()
     {
         $next_sheduled = wp_next_scheduled('blink_payment_checks');
         wp_unschedule_event($next_sheduled, 'blink_payment_checks');
@@ -86,7 +88,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
      * Clean up table and options on uninstall
      * @return [type] [description]
      */
-    function on_uninstall()
+    function on_uninstalling()
     {
         // Clean up i.e. delete the table, wp_cron already removed on deacivate
         delete_option('blink_db_version');
@@ -97,22 +99,61 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 
         $wpdb->query("DROP TABLE IF EXISTS $table_name");
     }
+	
+	/**
+ * Adds plugin page links
+ * 
+ * @since 1.0.0
+ * @param array $links all plugin links
+ * @return array $links all plugin links + our custom links (i.e., "Settings")
+ */
+	function wc_blink_gateway_plugin_links( $links ) {
+
+	$plugin_links = array(
+		'<a href="' . admin_url( 'admin.php?page=wc-settings&tab=checkout&section=blink' ) . '">' . __( 'Configure', 'woocommerce' ) . '</a>'
+	);
+
+	return array_merge( $plugin_links, $links );
+}
+add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), 'wc_gateway_blink_plugin_links' );
+
+/**
+ * Blink Payment Gateway
+ *
+ * Provides a Blink Payment Gateway; mainly for mobile money payments.
+ * We load it later to ensure WC is loaded first since we're extending it.
+ *
+ * @class 		WC_Blink_Gateway
+ * @extends		WC_Payment_Gateway
+ * @version		1.0.0
+ * @package		WooCommerce/Classes/Payment
+ * @author 		Gayra Ivan
+ */
 
     add_action('plugins_loaded', 'init_woo_blink_gateway', 0);
 
     function init_woo_blink_gateway()
     {
+		
+		if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
-        class WC_Blink_Gateway extends WC_Payment_Gateway
+        /**
+ * WC_Gateway_Blink Class.
+ */
+		class WC_Blink_Gateway extends WC_Payment_Gateway
         {
 
             function __construct()
             {
                 global $woocommerce;
                 $this->id = 'blink';
-                $this->method_title = __('Blink', 'woocommerce');
+                $this->method_title = __('BlinkPay', 'woocommerce');
 				$this->order_button_text = __( 'Proceed to BlinkPay', 'woocommerce' );
                 $this->has_fields = false;
+				/* translators: %s: Link to WC system status page */
+        $this->method_description = __( 'Allows mobile money payments. Very handy if you want payments via mobile money.', 'woocommerce' );
                 $this->testmode = ($this->get_option('testmode') === 'yes') ? true : false;
                 $this->debug = $this->get_option('debug');
 				$this->supports = array(
@@ -145,10 +186,8 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                 $this->queryPaymentApi = 'depositmobilemoney';
 				$this->queryRefundApi = 'withdrawmobilemoney';
            
-                // IPN Request URL
-                //$this->notify_url = 'https://myjobug.com/payment-status/';
-				// IPN Request URL
-                $this->notify_url = 'https://myjobug.com/status-handler.html';
+				// Notification URL
+                $this->notify_url = home_url('/').'wc-api/wc_blink_gateway/';
 				
                 $this->init_form_fields();
                 $this->init_settings();
@@ -161,12 +200,25 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                 // Actions
                 add_action('woocommerce_update_options_payment_gateways_' . $this->id, array(&$this, 'process_admin_options'));
                 add_action('woocommerce_receipt_blink', array(&$this, 'payment_page'));
-                //add_action('before_woocommerce_pay', array($this, 'before_pay'));
                 add_action('woocommerce_thankyou_blink', array(&$this, 'thankyou_page'));
-                //add_action('blink_background_payment_checks', array(&$this, 'background_check_payment_status'));
-                //add_action('woocommerce_api_wc_blink_gateway', array($this, 'ipn_response'));
-                //add_action('blink_process_valid_ipn_request', array($this, 'process_valid_ipn_request'));
+
             }
+			
+			/**
+     * Get Blink gateway icon.
+     *
+     * @return string
+     */
+    public function get_icon() {
+        
+        $icon_html = '';
+		
+		$icon_html .= '<img src="'. plugins_url( 'assets/images/blink.png' , __FILE__ ) .'" alt="' . esc_attr__( 'Blink acceptance mark', 'woocommerce' ) . '" />';
+
+        $icon_html .= sprintf( '<a href="https://blinkpay.co.ug" class="about_blink" >' . esc_attr__( 'What is BlinkPay?', 'woocommerce' ) . '</a>' );
+
+        return apply_filters( 'woocommerce_gateway_icon', $icon_html, $this->id );
+    }
 
             function init_form_fields()
             {
@@ -181,7 +233,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                         'title' => __('Title', 'woothemes'),
                         'type' => 'text',
                         'description' => __('This controls the title which the user sees during checkout.', 'woothemes'),
-                        'default' => __('Blink Payment', 'woothemes'),
+                        'default' => __('Blink Payments', 'woothemes'),
                     ),
                     'description' => array(
                         'title' => __('Description', 'woocommerce'),
@@ -316,9 +368,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
              **/
             public function thankyou_page($order_id)
             {
-                // global $woocommerce;
 				global $wpdb;
-				//$order_id = wc_get_order_id_by_order_key( $_GET['key'] );
                 $table_name = $wpdb->prefix . 'blink_queue';
 
                 $check = $wpdb->get_row("SELECT order_id, reference_code FROM $table_name WHERE order_id = $order_id");
@@ -326,8 +376,10 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                     
 				// Setup request to send json via POST
 				 $url2 = $this->gatewayURL;
+				 
 				 // Create a new cURL resource
 				 $cURL = curl_init($url2);
+				 
 				 $checkdata = array(
 				 'username' => $this->username,
 				 'password' => $this->password,
@@ -337,18 +389,23 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 				 //var_dump($check->reference_code);
 				 $checkstatus = json_encode($checkdata);
 				 curl_setopt($cURL, CURLOPT_POST, 1);
+				 
 				 // Attach encoded JSON string to the POST fields
 				 curl_setopt($cURL, CURLOPT_POSTFIELDS, $checkstatus);
+				 
 				 // Set the content type to application/json
 				 curl_setopt($cURL, CURLOPT_HTTPHEADER, array("Content-Type:application/json","Accept: application/json"));
+				 
 				 // Return response instead of outputting
 				 curl_setopt($cURL, CURLOPT_RETURNTRANSFER, true);
+				 
 				 //curl_setopt($ch, CURLOPT_TIMEOUT, 20);
+				 
 				 $result2 = curl_exec($cURL);
-				 //print_r($result2);exit();
+				 
 				 if (!curl_errno($cURL)) {
 					 //check the response if it's still "PENDING" or "SUCCESSFUL" or "FAILED"
-					 // $result2 = curl_exec($cURL);
+					 
 					 curl_close($cURL);
 					 $json2= json_decode($result2, true);
 					 $status=$json2['status'];
@@ -356,13 +413,11 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 
                 if ($status === 'PENDING') {
 
-                    // $order_id = $_GET['order'];
                     $order = wc_get_order($order_id);
                   
                     $order->add_order_note(__('Payment accepted, awaiting confirmation from the gateway.', 'woothemes'));
-					//add_post_meta($order_id, '_order_blink_receipt_number', $json2['receipt_number']);
                    
-                    // if immeadiatly complete mark it so
+                    // If immeadiatly complete mark it so
 				} else if ($status === 'SUCCESSFUL') {
                         $order->add_order_note(__('Payment confirmed.', 'woothemes'));
                         $order->payment_complete();
@@ -395,7 +450,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
             } //END process_payment()
 
             /**
-             * Payment page, creates blink request and shows the gateway iframe
+             * Payment page, creates blink request and send to gateway
              *
              * @return void
              * @author Gayra Ivan
@@ -403,6 +458,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
             function payment_page($order_id)
             {
                 global $woocommerce;
+				
 				//API Url
 				$url = $this->gatewayURL;
 				
@@ -425,11 +481,6 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 				curl_setopt_array($curl, array(
 				CURLOPT_URL => $url,
 				CURLOPT_RETURNTRANSFER => true,
-				//CURLOPT_ENCODING => "",
-				//CURLOPT_MAXREDIRS => 10,
-				//CURLOPT_TIMEOUT => 0,
-				//CURLOPT_FOLLOWLOCATION => true,
-				//CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
 				CURLOPT_POST => 1,
 				CURLOPT_POSTFIELDS => $jsonDataEncoded,
 				CURLOPT_HTTPHEADER => array( "Content-Type: application/json", "Accept: application/json" ),
@@ -465,11 +516,6 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 				curl_setopt_array($curl, array(
 				CURLOPT_URL => $url,
 				CURLOPT_RETURNTRANSFER => true,
-				//CURLOPT_ENCODING => "",
-				//CURLOPT_MAXREDIRS => 10,
-				//CURLOPT_TIMEOUT => 0,
-				//CURLOPT_FOLLOWLOCATION => true,
-				//CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
 				CURLOPT_POST => 1,
 				CURLOPT_POSTFIELDS => $jsonData1,
 				CURLOPT_HTTPHEADER => array("Content-Type: application/json", "Accept: application/json"  ),
@@ -478,14 +524,12 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 				$response = curl_exec($curl);
 				curl_close($curl);
 				
-				//var_dump($response);
 				//Attempt to decode the incoming RAW post data from JSON.
 				$transactionDetails = json_decode($response, true);
 				
 				// if we have come from the gateway do some stuff
                 if (isset($transactionDetails['reference_code'])) {
 
-                    //$order_id = $_GET['order'];
                     $order = wc_get_order($order_id);
                     
                     $order->add_order_note(__('Payment accepted, awaiting confirmation.', 'woothemes'));
@@ -496,7 +540,6 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
                         $table_name = $wpdb->prefix . 'blink_queue';
                         $wpdb->insert($table_name, array('order_id' => $order_id, 'reference_code' => $reference_code, 'time' => current_time('mysql')), array('%d', '%s', '%s'));
                     
-					//wp_redirect(add_query_arg('order', $order_id, add_query_arg('key', $order->get_order_key(), $order->get_checkout_order_received_url())));
 					wp_redirect( $this->get_return_url($order) ); exit;
 				}
 				} else {
@@ -526,6 +569,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 
                  // Setup request to send json via POST
 				 $url2 = $this->gatewayURL;
+				 
 				 // Create a new cURL resource
 				 $cURL = curl_init($url2);
 				 $checkdata = array(
@@ -534,20 +578,24 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 				 'api' => 'checktransactionstatus',
 				 'reference_code' => $check->reference_code
 				 );
+				 
 				 $checkstatus = json_encode($checkdata);
+				 
 				 curl_setopt($cURL, CURLOPT_POST, 1);
+				 
 				 // Attach encoded JSON string to the POST fields
 				 curl_setopt($cURL, CURLOPT_POSTFIELDS, $checkstatus);
+				 
 				 // Set the content type to application/json
 				 curl_setopt($cURL, CURLOPT_HTTPHEADER, array('Content-Type:application/json','Accept: application/json'));
+				 
 				 // Return response instead of outputting
 				 curl_setopt($cURL, CURLOPT_RETURNTRANSFER, true);
-				 //curl_setopt($ch, CURLOPT_TIMEOUT, 20);
+				 
 				 $result2 = curl_exec($cURL);
-				 //print_r($result2);exit();
+				 
 				 if (!curl_errno($cURL)) {
 					 //check the response if it's still "PENDING" or "SUCCESSFUL" or "FAILED"
-					 // $result2 = curl_exec($cURL);
 					 curl_close($cURL);
 					 $json2= json_decode($result2, true);
 					 $status=$json2['status'];
@@ -572,7 +620,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
             }
 			
 			/**
-	 * Get phone number args for paypal request.
+	 * Get phone number args for blink request.
 	 *
 	 * @param  WC_Order $order Order object.
 	 * @return array
@@ -603,103 +651,6 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 		}
 		return $phone_args;
 	}
-
-            /**
-             * IPN Response
-             *
-             * @return null
-             * @author Gayra Ivan
-             **/
-            function ipn_response()
-            {
-
-                global $wpdb;
-                $table_name = $wpdb->prefix . 'blink_queue';
-
-                $checks = $wpdb->get_results("SELECT order_id, reference_code FROM $table_name");
-
-                if ($wpdb->num_rows > 0) {
-
-                    foreach ($checks as $check) {
-						
-				// Setup request to send json via POST
-				 $url2 = $this->gatewayURL;
-				 // Create a new cURL resource
-				 $cURL = curl_init($url2);
-				 $checkdata = array(
-				 'username' => $this->username,
-				 'password' => $this->password,
-				 'api' => 'checktransactionstatus',
-				 'reference_code' => $check->reference_code
-				 );
-				 $checkstatus = json_encode($checkdata);
-				 curl_setopt($cURL, CURLOPT_POST, 1);
-				 // Attach encoded JSON string to the POST fields
-				 curl_setopt($cURL, CURLOPT_POSTFIELDS, $checkstatus);
-				 // Set the content type to application/json
-				 curl_setopt($cURL, CURLOPT_HTTPHEADER, array('Content-Type:application/json','Accept: application/json'));
-				 // Return response instead of outputting
-				 curl_setopt($cURL, CURLOPT_RETURNTRANSFER, true);
-				 //curl_setopt($ch, CURLOPT_TIMEOUT, 20);
-				 $result2 = curl_exec($cURL);
-				 //print_r($result2);exit();
-				 if (!curl_errno($cURL)) {
-					 //check the response if it's still "PENDING" or "SUCCESSFUL" or "FAILED"
-					 // $result2 = curl_exec($cURL);
-					 curl_close($cURL);
-					 $json2= json_decode($result2, true);
-					 $status=$json2['status'];
-				 }
-				
-				$order = wc_get_order($check->order_id);
-
-                // We are here so lets check status and do actions
-                switch ($status) {
-                    case 'SUCCESSFUL':
-                    case 'PENDING':
-
-                        // Check order not already completed
-                        if ($order->get_status() == 'completed') {
-                            if ('yes' == $this->debug) {
-                                $this->log->add('blink', 'Aborting, Order #' . $order->id . ' is already complete.');
-                            }
-
-                            exit;
-                        }
-
-                        if ($status == 'SUCCESSFUL') {
-                            $order->add_order_note(__('IPN payment completed', 'woocommerce'));
-                            $order->payment_complete();
-                        } else {
-                            $order->update_status('on-hold', sprintf(__('Payment pending: %s', 'woocommerce'), 'Waiting blink confirmation'));
-                        }
-
-                        if ('yes' == $this->debug) {
-                            $this->log->add('blink', 'Payment complete.');
-                        }
-
-                        break;
-                    case 'FAILED':
-                        // Order failed
-                        $order->update_status('failed', sprintf(__('Payment %s via IPN.', 'woocommerce'), strtolower($status)));
-                        break;
-
-                    default:
-                        // No action
-                        break;
-                }
-
-                $order = wc_get_order($check->order_id);
-                $newstatus = $order->get_status();
-
-                if ($status == $newstatus) {
-                    $dbupdated = "True";
-                } else {
-                    $dbupdated = 'False';
-                }
-            }
-				}
-			}
 
         } // END WC_Blink_Gateway Class
         

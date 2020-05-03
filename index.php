@@ -1,0 +1,1 @@
+<html><body><p>DON'T Access plugin files directly!</p></body></html>

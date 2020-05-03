@@ -115,7 +115,7 @@ if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_
 
 	return array_merge( $plugin_links, $links );
 }
-add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), 'wc_gateway_blink_plugin_links' );
+add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), 'wc_blink_gateway_plugin_links' );
 
 /**
  * Blink Payment Gateway
@@ -140,7 +140,7 @@ add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), 'wc_gateway_bl
 }
 
         /**
- * WC_Gateway_Blink Class.
+ * WC_Blink_Gateway Class.
  */
 		class WC_Blink_Gateway extends WC_Payment_Gateway
         {

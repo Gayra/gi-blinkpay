@@ -1,6 +1,6 @@
-=== BlinkPay ===
+=== GI Blink Payments ===
 Contributors: c0d3d101
-Donate link: https://gayra.github.io/blinkpay-for-woocommerce/
+Donate link: https://gayra.github.io/gi-blinkpay/
 Tags: e-commerce, store, sales, sell, woo, shop, cart, checkout, downloadable, downloads, payments, blink, blinkpay, mobile money, mtn, airtel, woo commerce
 Requires at least: 4.7
 Tested up to: 5.4
@@ -9,13 +9,13 @@ Requires PHP: 7.0
 License: GPLv3 or later
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
-BlinkPay For WooCommerce is a payment gateway that integrates mobile money payment options in WooCommerce.
+GI Blink Payments is a payment gateway that integrates mobile money payment options in WooCommerce.
 
 == Description ==
 
-Simple and easy to use woocommerce plugin for blinkpay.co.ug payment gateway. The plugins allows for currencies from Uganda through mobile money.
+Simple and easy to use woocommerce extension for blinkpay.co.ug payment gateway. The plugins allows for currencies from Uganda through mobile money.
 
-Please raise any issues though [our support page](https://gayra.github.io/blinkpay-for-woocommerce/), thanks.
+Please raise any issues though [our support page](https://gayra.github.io/gi-blinkpay/), thanks.
 
 Make sure your server has CURL for PHP enabled.
 
@@ -23,7 +23,7 @@ Make sure your server has CURL for PHP enabled.
 
 = Where can I find documentation and support? =
 
-Visit the plugin official page at https://gayra.github.io/blinkpay-for-woocommerce/.
+Visit the plugin official page at https://gayra.github.io/gi-blinkpay/.
 
 = Is BlinkPay supported in my country? =
 

@@ -1,4 +1,4 @@
-BlinkPay For Woocommerce - Woocommerce Payment Gateway
+GI Blink Payments - Woocommerce Payment Gateway
 
 Copyright 2019-2020 by the contributors
 
@@ -28,11 +28,11 @@ permission notices:
 
 and
 
-  BlinkPay For Woocommerce - Woocommerce Payment Gateway
+  GI Blink Payments - Woocommerce Payment Gateway
 
   Copyright 2019-2020 by the contributors
 
-  BlinkPay For Woocommerce is released under the GPL
+  GI Blink Payments is released under the GPL
 
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
@@ -381,4 +381,4 @@ WRITTEN OFFER
 The source code for any program binaries or compressed scripts that are
 included with BlinkPay For Woocommerce can be freely obtained at the following URL:
 
-	https://github.com/Gayra/Woocommerce-BlinkPay-Payment-Gateway
+	https://gayra.github.io/gi-blinkpay/

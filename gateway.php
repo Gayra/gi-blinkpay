@@ -1,6 +1,6 @@
 <?php
 /*
-Plugin Name: BlinkPay For WooCommerce
+Plugin Name: BlinkPay
 Plugin URI: https://gayra.github.io/blinkpay-for-woocommerce/
 Description: Allows use of BlinkPay payment processor - https://www.blinkpay.co.ug.
 Version: 1.0.0

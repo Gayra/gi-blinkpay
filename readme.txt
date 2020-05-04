@@ -1,4 +1,4 @@
-=== BlinkPay For WooCommerce ===
+=== BlinkPay ===
 Contributors: c0d3d101
 Donate link: https://gayra.github.io/blinkpay-for-woocommerce/
 Tags: e-commerce, store, sales, sell, woo, shop, cart, checkout, downloadable, downloads, payments, blink, blinkpay, mobile money, mtn, airtel, woo commerce

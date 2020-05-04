@@ -1,1 +1,1 @@
-# Woocommerce-Blink-Payment-Gateway
+# BlinkPay For WooCommerce

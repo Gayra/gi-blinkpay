@@ -17,13 +17,13 @@ WooCommerce 3.0 or greater is required
 
 #### Automatic installation
 
-Automatic installation is the easiest option -- WordPress will handles the file transfer, and you won’t need to leave your web browser. To do an automatic install of BlinkPay For WooCommerce, log in to your WordPress dashboard, navigate to the Plugins menu, and click “Add New.”
+Automatic installation is the easiest option -- WordPress will handles the file transfer, and you won’t need to leave your web browser. To do an automatic install of BlinkPay, log in to your WordPress dashboard, navigate to the Plugins menu, and click “Add New.”
  
-In the search field type “BlinkPay For WooCommerce,” then click “Search Plugins.” Once you’ve found us,  you can view details about it such as the point release, rating, and description. Most importantly of course, you can install it by! Click “Install Now,” and WordPress will take it from there.
+In the search field type “BlinkPay,” then click “Search Plugins.” Once you’ve found us,  you can view details about it such as the point release, rating, and description. Most importantly of course, you can install it by! Click “Install Now,” and WordPress will take it from there.
 
 #### Manual installation
 
-Manual installation method requires downloading the BlinkPay For WooCommerce plugin and uploading it to your web server via your favorite FTP application. The WordPress codex contains [instructions on how to do this here](https://wordpress.org/support/article/managing-plugins/#manual-plugin-installation).
+Manual installation method requires downloading the BlinkPay plugin and uploading it to your web server via your favorite FTP application. The WordPress codex contains [instructions on how to do this here](https://wordpress.org/support/article/managing-plugins/#manual-plugin-installation).
 
 ### Updating
 
@@ -35,7 +35,7 @@ Automatic updates should work smoothly, but we still recommend you back up your 
 
 Log into your WordPress dashboard,
 Navigate to Plugins menu, and click "All Plugins",
-Go to BlinkPay For WooCommerce Plugin, and click "Configure",
+Go to BlinkPay Plugin, and click "Configure",
 On BlinkPay For WooCommerce settings page, select "Enable Blink Payments",
 Select "Use IPN",
 Select "Use Demo Gateway"
@@ -48,7 +48,7 @@ And wholla, you can test mobile money payments on your WooCommerce shopping cart
 Log into your WordPress dashboard,
 Navigate to Plugins menu, and click "All Plugins",
 Go to BlinkPay For WooCommerce Plugin, and click "Configure",
-On BlinkPay For WooCommerce settings page, select "Enable Blink Payments",
+On BlinkPay settings page, select "Enable Blink Payments",
 Select "Use IPN",
 Enter your BlinkPay Username and BlinkPay Password,
 Save changes,

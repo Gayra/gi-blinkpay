@@ -39,7 +39,7 @@ Visit https://blinkpay.co.ug and signup for an account, when approved you will g
 
 * PHP 7.2 or greater is recommended
 * MySQL 5.6 or greater is recommended
-* WooCommerce 2.0 or greater is required
+* WooCommerce 3.0 or greater is required
 
 = Automatic installation =
 

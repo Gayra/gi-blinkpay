@@ -5,7 +5,6 @@ Plugin URI: https://gayra.github.io/blinkpay-for-woocommerce/
 Description: Allows use of BlinkPay payment processor - https://www.blinkpay.co.ug.
 Version: 1.0.0
 Author: Gayra Ivan
-Author URI: https://gayra.github.io/blinkpay-for-woocommerce/
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 Requires at least: 4.7

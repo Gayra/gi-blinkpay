@@ -39,13 +39,13 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 	register_uninstall_hook( __FILE__, 'on_uninstalling' );
 	
 	// cron interval for ever 10 seconds
-	add_filter( 'cron_schedules', 'tenseconds_cron_definer' );
+	add_filter( 'cron_schedules', 'oneminute_cron_definer' );
 	
-	function tenseconds_cron_definer( $schedules )
+	function oneminute_cron_definer( $schedules )
 	{
-		$schedules['tenseconds'] = array(
-		'interval' => 10,
-		'display' => esc_html__( 'Once Every 10 seconds' ),
+		$schedules['oneminute'] = array(
+		'interval' => 60,
+		'display' => esc_html__( 'Once Every 1 minute' ),
 		);
 		return $schedules;
 	}
@@ -57,7 +57,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
     function create_background_check()
     {
         // Wp_cron checks pending payments in the background
-        wp_schedule_event( time(), 'tenseconds', 'blink_payment_checks' );
+        wp_schedule_event( time(), 'oneminute', 'blink_payment_checks' );
 
         //Get the table name with the WP database prefix
         global $wpdb;

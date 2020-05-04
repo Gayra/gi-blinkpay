@@ -1,7 +1,7 @@
 <?php
 /*
-Plugin Name: BlinkPay
-Plugin URI: https://gayra.github.io/blinkpay-for-woocommerce/
+Plugin Name: GI Blink Payments
+Plugin URI: https://gayra.github.io/gi-blinkpay/
 Description: Allows use of BlinkPay payment processor - https://www.blinkpay.co.ug.
 Version: 1.0.0
 Author: Gayra Ivan

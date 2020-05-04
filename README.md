@@ -33,26 +33,26 @@ Automatic updates should work smoothly, but we still recommend you back up your 
 
 #### Demo
 
-Log into your WordPress dashboard,
-Navigate to Plugins menu, and click "All Plugins",
-Go to BlinkPay Plugin, and click "Configure",
-On BlinkPay For WooCommerce settings page, select "Enable Blink Payments",
-Select "Use IPN",
-Select "Use Demo Gateway"
-Enter your BlinkPay Demo Username and BlinkPay Demo Password,
-Save changes,
-And wholla, you can test mobile money payments on your WooCommerce shopping cart.
+* Log into your WordPress dashboard,
+* Navigate to Plugins menu, and click **"All Plugins"**,
+* Go to **BlinkPay** Plugin, and click **"Configure"**,
+* On BlinkPay settings page, select **"Enable Blink Payments"**,
+* Select **"Use IPN"**,
+* Select **"Use Demo Gateway"**,
+* Enter your **"BlinkPay Demo Username"** and **"BlinkPay Demo Password"**,
+* Save changes,
+* And wholla, you can test mobile money payments on your WooCommerce shopping cart.
 
 #### Live
 
-Log into your WordPress dashboard,
-Navigate to Plugins menu, and click "All Plugins",
-Go to BlinkPay For WooCommerce Plugin, and click "Configure",
-On BlinkPay settings page, select "Enable Blink Payments",
-Select "Use IPN",
-Enter your BlinkPay Username and BlinkPay Password,
-Save changes,
-And wholla, your payments are active, Your customers can now pay you using mobile money.
+* Log into your WordPress dashboard,
+* Navigate to Plugins menu, and click **"All Plugins"**,
+* Go to BlinkPay Plugin, and click **"Configure"**,
+* On BlinkPay settings page, select **"Enable Blink Payments"**,
+* Select **"Use IPN"**,
+* Enter your **"BlinkPay Username"** and **"BlinkPay Password"**,
+* Save changes,
+* And wholla, your payments are active, Your customers can now pay you using mobile money.
 
 ## Authors
 

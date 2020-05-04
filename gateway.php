@@ -1,19 +1,19 @@
 <?php
 /*
-Plugin Name: Woocommerce Blink Payment Gateway
-Plugin URI: https://cod-ed.com
+Plugin Name: BlinkPay For Woocommerce
+Plugin URI: https://gayra.github.io/blinkpay-for-woocommerce/
 Description: Allows use of BlinkPay payment processor - https://www.blinkpay.co.ug.
 Version: 1.0.0
 Author: Gayra Ivan
-Author URI: https://cod-ed.com
+Author URI: https://gayra.github.io/blinkpay-for-woocommerce/
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
-Requires at least: 3.3
-Tested up to: 5.3.2
+Requires at least: 4.7
+Tested up to: 5.4
 WC requires at least: 3.0.0
 WC tested up to: 3.2.6
 
-Copyright 2020  Gayra Ivan  (email : givan9000@gmail.com)
+Copyright 2020  Gayra Ivan  (email : c0d3d101.inc@gmail.com)
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License, version 3, as

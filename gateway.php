@@ -386,6 +386,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 				//curl_setopt($ch, CURLOPT_TIMEOUT, 20);
 				 
 				$result2 = curl_exec( $cURL );
+		    //Using WodPress http-api
 				 
 				if ( !curl_errno( $cURL ) ) {
 					//check the response if it's still "PENDING" or "SUCCESSFUL" or "FAILED"

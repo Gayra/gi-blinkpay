@@ -358,30 +358,26 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 
                 $check = $wpdb->get_row( "SELECT order_id, reference_code FROM $table_name WHERE order_id = $order_id" );
                     
-				// Setup request to send json via POST
-				$url2 = $this->gatewayURL;
+		// Setup request to send json via POST
+		$url2 = $this->gatewayURL;
 				 
-				$checkdata = array(
-				'username' => $this->username,
-				'password' => $this->password,
-				'api' => 'checktransactionstatus',
-				'reference_code' => $check->reference_code,
-				);
-				
-				$checkstatus = json_encode( $checkdata );
+		$checkdata = array(
+		'username' => $this->username,
+		'password' => $this->password,
+		'api' => 'checktransactionstatus',
+		'reference_code' => $check->reference_code,
+		);
+			
+		$checkstatus = json_encode( $checkdata );
 		    
-				$args = array( 'headers' => array( 'Content-Type' => 'application/json' ), 'body' => $checkstatus );
-				 
-				$result2 = curl_exec( $cURL );
-		    //Using WodPress http-api
-				 
-				if ( !curl_errno( $cURL ) ) {
-					//check the response if it's still "PENDING" or "SUCCESSFUL" or "FAILED"
+		$args = array( 'headers' => array( 'Content-Type' => 'application/json' ), 'body' => $checkstatus );
+		    
+		$result2 = wp_remote_post( esc_url_raw( $url2 ), $args );
+		    
+		$response_body = wp_remote_retrieve_body( $result2 );	
 					 
-					curl_close( $cURL );
-					$json2 = json_decode( $result2, true);
-					$status = $json2['status'];
-				}
+		$json2 = json_decode( $response_body, true);
+		$status = $json2['status'];
 
                 if ( $status === 'PENDING' ) {
 

@@ -33,14 +33,14 @@ defined ( 'ABSPATH' ) or exit;
 // Check for woocommerce
 if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', get_option( 'active_plugins' ) ) ) ) {
 	// Hooks for adding/ removing the database table, and the wpcron to check them
-	register_activation_hook( __FILE__, 'create_background_check' );
-	register_deactivation_hook( __FILE__, 'remove_background_check' );
-	register_uninstall_hook( __FILE__, 'on_uninstalling' );
+	register_activation_hook( __FILE__, 'gibp_create_background_check' );
+	register_deactivation_hook( __FILE__, 'gibp_remove_background_check' );
+	register_uninstall_hook( __FILE__, 'gibp_on_uninstalling' );
 	
 	// cron interval for ever 10 seconds
-	add_filter( 'cron_schedules', 'oneminute_cron_definer' );
+	add_filter( 'cron_schedules', 'gibp_oneminute_cron_definer' );
 	
-	function oneminute_cron_definer( $schedules )
+	function gibp_oneminute_cron_definer( $schedules )
 	{
 		$schedules['oneminute'] = array(
 		'interval' => 60,
@@ -53,7 +53,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
      * Activation, create processing order table, and table version option
      * @return void
      */
-    function create_background_check()
+    function gibp_create_background_check()
     {
         // Wp_cron checks pending payments in the background
         wp_schedule_event( time(), 'oneminute', 'blink_payment_checks' );
@@ -76,7 +76,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
         add_option( 'blink_db_version', $db_version );
     }
 
-    function remove_background_check()
+    function gibp_remove_background_check()
     {
         $next_sheduled = wp_next_scheduled( 'blink_payment_checks' );
         wp_unschedule_event( $next_sheduled, 'blink_payment_checks' );
@@ -86,7 +86,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
      * Clean up table and options on uninstall
      * @return [type] [description]
      */
-    function on_uninstalling()
+    function gibp_on_uninstalling()
     {
         // Clean up i.e. delete the table, wp_cron already removed on deacivate
         delete_option( 'blink_db_version' );
@@ -105,12 +105,12 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
  * @param array $links all plugin links
  * @return array $links all plugin links + our custom links (i.e., "Settings")
  */
-	function wc_blink_gateway_plugin_links( $links ) {
+	function gibp_blink_gateway_plugin_links( $links ) {
 		$plugin_links = array( '<a href="' . admin_url( 'admin.php?page=wc-settings&tab=checkout&section=blink' ) . '">' . __( 'Configure', 'woocommerce' ) . '</a>' );
 		return array_merge( $plugin_links, $links );
 	}
 	
-	add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), 'wc_blink_gateway_plugin_links' );
+	add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), 'gibp_blink_gateway_plugin_links' );
 	/**
 	* Blink Payment Gateway
 	*
@@ -134,7 +134,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
         /**
 		* WC_Blink_Gateway Class.
 		*/
-		class WC_Blink_Gateway extends WC_Payment_Gateway
+		class GIBP_Blink_Gateway extends WC_Payment_Gateway
         {
 
             function __construct()
@@ -176,7 +176,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 				$this->queryRefundApi = 'withdrawmobilemoney';
            
 				// Notification URL
-                $this->notify_url = home_url( '/' ).'wc-api/wc_blink_gateway/';
+                $this->notify_url = home_url( '/' ).'wc-api/gibp_blink_gateway/';
 				
                 $this->init_form_fields();
                 $this->init_settings();
@@ -188,8 +188,8 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 
                 // Actions
                 add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( &$this, 'process_admin_options' ) );
-                add_action( 'woocommerce_receipt_blink', array( &$this, 'payment_page' ) );
-                add_action( 'woocommerce_thankyou_blink', array( &$this, 'thankyou_page' ) );
+                add_action( 'woocommerce_receipt_blink', array( &$this, 'gibp_payment_page' ) );
+                add_action( 'woocommerce_thankyou_blink', array( &$this, 'gibp_thankyou_page' ) );
 
             }
 			/**
@@ -351,7 +351,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
              * @return void
              * @author Gayra Ivan
              **/
-            public function thankyou_page( $order_id )
+            public function gibp_thankyou_page( $order_id )
             {
 				global $wpdb;
                 $table_name = $wpdb->prefix . 'blink_queue';
@@ -418,7 +418,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
              * @author Gayra Ivan
              *
              **/
-            function process_payment( $order_id )
+            function gibp_process_payment( $order_id )
             {
                 global $woocommerce;
 
@@ -438,7 +438,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
              * @return void
              * @author Gayra Ivan
              **/
-            function payment_page( $order_id )
+            function gibp_payment_page( $order_id )
             {
                 global $woocommerce;
 				
@@ -530,7 +530,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
              * @return void
              * @author Gayra Ivan
              **/
-            public function background_check_payment_status()
+            public function gibp_background_check_payment_status()
             {
                 global $wpdb;
                 $table_name = $wpdb->prefix . 'blink_queue';
@@ -624,8 +624,8 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 
         } // END WC_Blink_Gateway Class
         
-        $bchecks = new WC_Blink_Gateway();
-		add_action( 'blink_payment_checks', array( $bchecks, 'background_check_payment_status' ) );
+        $bchecks = new GIBP_Blink_Gateway();
+		add_action( 'blink_payment_checks', array( $bchecks, 'gibp_background_check_payment_status' ) );
 
     } // END init_woo_blink_gateway()
 

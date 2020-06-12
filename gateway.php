@@ -361,9 +361,6 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 				// Setup request to send json via POST
 				$url2 = $this->gatewayURL;
 				 
-				// Create a new cURL resource
-				$cURL = curl_init( $url2 );
-				 
 				$checkdata = array(
 				'username' => $this->username,
 				'password' => $this->password,
@@ -372,18 +369,8 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 				);
 				
 				$checkstatus = json_encode( $checkdata );
-				curl_setopt( $cURL, CURLOPT_POST, 1 );
-				 
-				// Attach encoded JSON string to the POST fields
-				curl_setopt( $cURL, CURLOPT_POSTFIELDS, $checkstatus );
-				 
-				// Set the content type to application/json
-				curl_setopt( $cURL, CURLOPT_HTTPHEADER, array( "Content-Type:application/json","Accept: application/json" ) );
-				 
-				// Return response instead of outputting
-				curl_setopt( $cURL, CURLOPT_RETURNTRANSFER, true );
-				 
-				//curl_setopt($ch, CURLOPT_TIMEOUT, 20);
+		    
+				$args = array( 'headers' => array( 'Content-Type' => 'application/json' ), 'body' => $checkstatus );
 				 
 				$result2 = curl_exec( $cURL );
 		    //Using WodPress http-api

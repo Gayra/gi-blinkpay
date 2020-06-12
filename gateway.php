@@ -635,7 +635,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
      */
     function add_blink_gateway( $methods )
     {
-        $methods[] = 'WC_Blink_Gateway';
+        $methods[] = 'GIBP_Blink_Gateway';
         return $methods;
     }
     

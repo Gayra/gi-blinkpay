@@ -124,15 +124,15 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 	* @author 		Gayra Ivan
 	*/
 
-    add_action( 'plugins_loaded', 'init_woo_blink_gateway', 0 );
+    add_action( 'plugins_loaded', 'gibp_init_woo_blink_gateway', 0 );
 
-    function init_woo_blink_gateway()
+    function gibp_init_woo_blink_gateway()
     {
 		
 		if ( ! defined( 'ABSPATH' ) ) { exit; }
 
         /**
-		* WC_Blink_Gateway Class.
+		* GIBP_Blink_Gateway Class.
 		*/
 		class GIBP_Blink_Gateway extends WC_Payment_Gateway
         {
@@ -402,7 +402,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
              * @author Gayra Ivan
              *
              **/
-            function gibp_process_payment( $order_id )
+            function process_payment( $order_id )
             {
                 global $woocommerce;
 
@@ -592,13 +592,13 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
         $bchecks = new GIBP_Blink_Gateway();
 		add_action( 'blink_payment_checks', array( $bchecks, 'gibp_background_check_payment_status' ) );
 
-    } // END init_woo_blink_gateway()
+    } // END gibp_init_woo_blink_gateway()
 
     /**
      * @param String[] $methods
      * @return String[]
      */
-    function add_blink_gateway( $methods )
+    function gibp_add_blink_gateway( $methods )
     {
         $methods[] = 'GIBP_Blink_Gateway';
         return $methods;
@@ -606,5 +606,5 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
     
     	
 
-    add_filter( 'woocommerce_payment_gateways', 'add_blink_gateway' );
+    add_filter( 'woocommerce_payment_gateways', 'gibp_add_blink_gateway' );
 }

@@ -10,7 +10,7 @@ License URI: http://www.gnu.org/licenses/gpl-3.0.html
 Requires at least: 4.7
 Tested up to: 5.4
 WC requires at least: 3.0.0
-WC tested up to: 3.2.6
+WC tested up to: 4.2.0
 
 Copyright 2020  Gayra Ivan  (email : c0d3d101.inc@gmail.com)
 
@@ -44,7 +44,7 @@ if ( in_array( 'woocommerce/woocommerce.php', apply_filters( 'active_plugins', g
 	{
 		$schedules['oneminute'] = array(
 		'interval' => 60,
-		'display' => esc_html__( 'Once Every 1 minute' ),
+		'display' => esc_html__( 'Once Every Minute' ),
 		);
 		return $schedules;
 	}
